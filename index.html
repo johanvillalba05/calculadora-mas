@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>MAS — Calculadora</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ─── RESET ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+
+:root {
+  --bg:   #080c14;
+  --s1:   #0d1320;
+  --s2:   #111b2e;
+  --bd:   rgba(255,255,255,0.07);
+  --bd2:  rgba(255,255,255,0.13);
+  --acc:  #2dd4bf;
+  --yel:  #fbbf24;
+  --red:  #f87171;
+  --txt:  #e2e8f0;
+  --mut:  #64748b;
+  --mu2:  #94a3b8;
+}
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg);
+  color: var(--txt);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(45,212,191,.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(45,212,191,.018) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+body::after {
+  content: '';
+  position: fixed; top: -160px; left: 50%; transform: translateX(-50%);
+  width: min(600px,100vw); height: 320px;
+  background: radial-gradient(ellipse, rgba(45,212,191,.055) 0%, transparent 70%);
+  pointer-events: none; z-index: 0;
+}
+
+.page {
+  position: relative; z-index: 1;
+  width: 100%; max-width: 1080px;
+  margin: 0 auto;
+  padding: 16px 12px 60px;
+}
+
+/* ─── HEADER ─── */
+.hdr { text-align: center; padding: 6px 0 22px; animation: sD .5s ease both; }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(45,212,191,.09); border: 1px solid rgba(45,212,191,.2);
+  color: var(--acc);
+  font-family: 'Space Mono', monospace; font-size: 8px;
+  letter-spacing: 2px; text-transform: uppercase;
+  padding: 4px 12px; border-radius: 100px; margin-bottom: 12px;
+}
+
+h1 {
+  font-size: clamp(20px,6vw,44px); font-weight: 800;
+  letter-spacing: -1.2px; line-height: 1.06;
+  background: linear-gradient(150deg, #fff 20%, var(--acc) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+.hsub { font-size: clamp(11px,2.5vw,13px); color: var(--mut); margin-top: 8px; font-weight: 300; }
+
+/* ─── TABS ─── */
+.tab-bar {
+  display: flex; gap: 4px;
+  background: var(--s1); border: 1px solid var(--bd);
+  border-radius: 16px; padding: 5px;
+  margin-bottom: 16px;
+  animation: fU .4s .1s ease both;
+}
+
+.tbtn {
+  flex: 1; background: transparent; border: none; color: var(--mut);
+  font-family: 'Outfit', sans-serif; font-size: clamp(11px,3vw,14px); font-weight: 600;
+  padding: 9px 4px; border-radius: 11px; cursor: pointer; transition: all .2s ease;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+
+.tbtn.active { background: var(--acc); color: #080c14; box-shadow: 0 4px 14px rgba(45,212,191,.28); }
+.tbtn:not(.active):hover { background: var(--s2); color: var(--txt); }
+
+.tpanel { display: none; }
+.tpanel.active { display: block; animation: fU .3s ease both; }
+
+/* ─── CARD ─── */
+.card {
+  background: var(--s1); border: 1px solid var(--bd);
+  border-radius: 16px; padding: 16px;
+  box-shadow: 0 4px 22px rgba(0,0,0,.42);
+}
+
+.ch { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.cd { width: 6px; height: 20px; background: var(--acc); border-radius: 3px; flex-shrink: 0; }
+.cd.y { background: var(--yel); }
+.cd.r { background: var(--red); }
+.ct { font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--mu2); }
+
+/* ─── FIELD ─── */
+.field { margin-bottom: 11px; }
+.fl { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+.fn { font-size: 10px; font-weight: 600; color: var(--mu2); text-transform: uppercase; letter-spacing: .6px; }
+.fu { font-family: 'Space Mono', monospace; font-size: 8px; color: var(--acc); background: rgba(45,212,191,.09); padding: 2px 7px; border-radius: 6px; }
+
+input[type="number"], select {
+  width: 100%; background: var(--s2);
+  border: 1px solid var(--bd2); border-radius: 12px;
+  color: var(--txt); font-family: 'Space Mono', monospace;
+  /* 16px prevents iOS auto-zoom */
+  font-size: max(16px, 14px);
+  padding: 11px 13px; outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  -moz-appearance: textfield; appearance: none;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button { -webkit-appearance: none; }
+input:focus, select:focus { border-color: var(--acc); box-shadow: 0 0 0 3px rgba(45,212,191,.1); }
+
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%2364748b' d='M5 6L0 0h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 13px center;
+  padding-right: 34px; cursor: pointer;
+}
+
+/* ─── CHECKBOXES ─── */
+.checks { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+.ck { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; color: var(--mu2); cursor: pointer; -webkit-tap-highlight-color: transparent; padding: 4px 0; }
+.ck input { width: 16px; height: 16px; accent-color: var(--acc); cursor: pointer; flex-shrink: 0; }
+
+/* ─── BUTTONS ─── */
+.btnP {
+  width: 100%; background: var(--acc); color: #080c14; border: none;
+  border-radius: 12px; font-family: 'Outfit', sans-serif;
+  font-size: 15px; font-weight: 700; padding: 13px; cursor: pointer;
+  transition: transform .17s, box-shadow .17s; margin-top: 12px;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.btnP:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(45,212,191,.3); }
+.btnP:active { transform: translateY(0); opacity: .9; }
+
+.btnG {
+  width: 100%; background: transparent; color: var(--mut); border: 1px solid var(--bd2);
+  border-radius: 12px; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 600;
+  padding: 10px; cursor: pointer; transition: all .17s; margin-top: 8px;
+  touch-action: manipulation;
+}
+.btnG:hover { border-color: var(--acc); color: var(--acc); }
+
+/* ─── RESULTS ─── */
+.rrow { display: grid; grid-template-columns: repeat(3,1fr); gap: 7px; margin-top: 12px; }
+@media (max-width: 380px) { .rrow { grid-template-columns: 1fr; } }
+
+.ri { background: var(--s2); border: 1px solid var(--bd); border-radius: 12px; padding: 11px 8px; text-align: center; }
+.ri.pop { animation: pop .35s ease; }
+.rl { font-size: 8px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--mut); margin-bottom: 5px; }
+.rv { font-family: 'Space Mono', monospace; font-size: clamp(10px,2.5vw,14px); font-weight: 700; word-break: break-all; line-height: 1.3; }
+.rv.c1 { color: var(--acc); } .rv.c2 { color: var(--yel); } .rv.c3 { color: var(--red); }
+.ru { font-size: 8px; color: var(--mut); margin-top: 2px; font-family: 'Space Mono', monospace; }
+
+/* ─── DERIVED ─── */
+.drow { display: grid; grid-template-columns: repeat(2,1fr); gap: 6px; margin-top: 9px; }
+@media (max-width: 340px) { .drow { grid-template-columns: 1fr; } }
+.di { background: var(--s2); border: 1px solid var(--bd); border-radius: 8px; padding: 8px 10px; display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+.dk { font-size: 9px; color: var(--mut); flex-shrink: 0; }
+.dv { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--acc); text-align: right; word-break: break-all; }
+
+/* ─── EQUATIONS ─── */
+.eqlist { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+.eqrow { display: flex; align-items: flex-start; gap: 7px; background: var(--s2); border: 1px solid var(--bd); border-radius: 8px; padding: 8px 10px; font-size: 10px; }
+.eqlbl { color: var(--mut); white-space: nowrap; min-width: 16px; }
+.eqval { font-family: 'Space Mono', monospace; word-break: break-all; line-height: 1.6; font-size: clamp(9px,2.2vw,11px); }
+.eqval.c1 { color: var(--acc); } .eqval.c2 { color: var(--yel); } .eqval.c3 { color: var(--red); }
+
+/* ─── CHART WRAPPER ─── */
+/* 
+  This wrapper is the KEY fix for "recorte":
+  - width: 100% fills the card
+  - height is responsive via clamp
+  - overflow: hidden prevents any canvas bleed
+  - The canvas inside is always 100%×100% of this box
+*/
+.chart-outer {
+  position: relative;
+  width: 100%;
+  /* Responsive height: 220px on tiny phone, 320px on tablet+ */
+  height: clamp(220px, 50vw, 330px);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.chart-outer canvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ─── OSCILLATOR ─── */
+.osc-wrap { margin-top: 10px; border-radius: 12px; overflow: hidden; border: 1px solid var(--bd); }
+.osc { display: block; width: 100%; height: 90px; background: var(--s2); }
+
+/* ─── EMPTY ─── */
+.empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; padding: 40px 16px; color: var(--mut); text-align: center; }
+.empty-ico { font-size: 28px; opacity: .4; }
+.empty-txt { font-size: 12px; line-height: 1.7; }
+
+hr.dv { border: none; border-top: 1px solid var(--bd); margin: 13px 0; }
+
+.sec { font-size: 8px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--mut); margin-bottom: 9px; padding-bottom: 6px; border-bottom: 1px solid var(--bd); }
+
+/* ─── SOLVE RESULT ─── */
+.sr { display: none; background: linear-gradient(135deg,rgba(45,212,191,.07),rgba(45,212,191,.02)); border: 1px solid rgba(45,212,191,.22); border-radius: 12px; padding: 13px 14px; margin-top: 10px; }
+.sr.show { display: block; animation: fU .27s ease; }
+.srl { font-size: 8px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--mut); margin-bottom: 4px; }
+.srv { font-family: 'Space Mono', monospace; font-size: clamp(15px,4vw,19px); font-weight: 700; word-break: break-all; color: var(--acc); }
+.srv.y { color: var(--yel); } .srv.r { color: var(--red); }
+.srf { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--mut); margin-top: 7px; line-height: 1.75; white-space: pre-wrap; word-break: break-all; }
+
+/* ─── LAYOUTS ─── */
+/* TAB 1: mobile-first single column, desktop: sidebar + chart */
+.gLayout { display: flex; flex-direction: column; gap: 14px; }
+
+@media (min-width: 760px) {
+  .gLayout { flex-direction: row; align-items: flex-start; }
+  .gLeft  { width: 310px; flex-shrink: 0; }
+  .gRight { flex: 1; min-width: 0; } /* min-width:0 prevents flex overflow */
+}
+
+.gLeft  { display: flex; flex-direction: column; gap: 14px; }
+.gRight { display: flex; flex-direction: column; }
+
+/* TAB 2: mobile 1col, tablet 2col */
+.cLayout { display: flex; flex-direction: column; gap: 14px; }
+@media (min-width: 600px) { .cLayout { display: grid; grid-template-columns: repeat(2,1fr); gap: 14px; } }
+
+/* ─── ANIMATIONS ─── */
+@keyframes sD { from{opacity:0;transform:translateY(-14px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fU  { from{opacity:0;transform:translateY(10px)}  to{opacity:1;transform:translateY(0)} }
+@keyframes pop { 0%{transform:scale(1)} 45%{transform:scale(1.045)} 100%{transform:scale(1)} }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="hdr">
+    <div class="badge">Física de Ondas · UniEspinal · ITFIP</div>
+    <h1>Movimiento Armónico Simple</h1>
+    <p class="hsub">Calculadora interactiva · Graficadora · Ecuaciones del MAS</p>
+  </header>
+
+  <div class="tab-bar">
+    <button class="tbtn active" onclick="switchTab('g')" id="tab-g">📈 Graficadora</button>
+    <button class="tbtn"        onclick="switchTab('c')" id="tab-c">🔢 Calculadora</button>
+  </div>
+
+  <!-- ══ TAB 1: GRAFICADORA ══ -->
+  <div class="tpanel active" id="panel-g">
+    <div class="gLayout">
+
+      <div class="gLeft">
+
+        <!-- Parámetros -->
+        <div class="card">
+          <div class="ch"><div class="cd"></div><div class="ct">Parámetros del sistema</div></div>
+
+          <div class="field">
+            <div class="fl"><span class="fn">Amplitud (A)</span><span class="fu">metros</span></div>
+            <input type="number" id="amp"   value="1" step="any" inputmode="decimal" placeholder="ej. 1.0">
+          </div>
+          <div class="field">
+            <div class="fl"><span class="fn">Frec. angular (ω)</span><span class="fu">rad/s</span></div>
+            <input type="number" id="omega" value="2" step="any" inputmode="decimal" placeholder="ej. 2.0">
+          </div>
+          <div class="field">
+            <div class="fl"><span class="fn">Fase inicial (φ)</span><span class="fu">rad</span></div>
+            <input type="number" id="phi"   value="0" step="any" inputmode="decimal" placeholder="ej. 0">
+          </div>
+          <div class="field">
+            <div class="fl"><span class="fn">Tiempo específico (t)</span><span class="fu">s</span></div>
+            <input type="number" id="tval"  value="1" step="any" inputmode="decimal" placeholder="ej. 1.0">
+          </div>
+          <div class="field">
+            <div class="fl"><span class="fn">Períodos a graficar</span><span class="fu">ciclos</span></div>
+            <select id="nper">
+              <option value="2">2 períodos</option>
+              <option value="3" selected>3 períodos</option>
+              <option value="4">4 períodos</option>
+              <option value="6">6 períodos</option>
+              <option value="8">8 períodos</option>
+            </select>
+          </div>
+          <div class="field">
+            <div class="fl"><span class="fn">Curvas a mostrar</span></div>
+            <div class="checks">
+              <label class="ck"><input type="checkbox" id="sP" checked> Posición</label>
+              <label class="ck"><input type="checkbox" id="sV"> Velocidad</label>
+              <label class="ck"><input type="checkbox" id="sA"> Aceleración</label>
+            </div>
+          </div>
+
+          <button class="btnP" onclick="calcular()">▶ Calcular y Graficar</button>
+          <button class="btnG" onclick="resetear()">↺ Restablecer</button>
+        </div>
+
+        <!-- Resultados -->
+        <div class="card">
+          <div class="ch"><div class="cd y"></div><div class="ct">Resultados en t = <span id="tDisp">—</span> s</div></div>
+
+          <div class="rrow">
+            <div class="ri" id="ri-x">
+              <div class="rl">Posición x(t)</div>
+              <div class="rv c1" id="rv-x">—</div>
+              <div class="ru">m</div>
+            </div>
+            <div class="ri" id="ri-v">
+              <div class="rl">Velocidad v(t)</div>
+              <div class="rv c2" id="rv-v">—</div>
+              <div class="ru">m/s</div>
+            </div>
+            <div class="ri" id="ri-a">
+              <div class="rl">Aceleración a(t)</div>
+              <div class="rv c3" id="rv-a">—</div>
+              <div class="ru">m/s²</div>
+            </div>
+          </div>
+
+          <div class="drow">
+            <div class="di"><span class="dk">Período T</span><span class="dv" id="dv-T">—</span></div>
+            <div class="di"><span class="dk">Frecuencia f</span><span class="dv" id="dv-f">—</span></div>
+            <div class="di"><span class="dk">v_máx = Aω</span><span class="dv" id="dv-vm">—</span></div>
+            <div class="di"><span class="dk">a_máx = Aω²</span><span class="dv" id="dv-am">—</span></div>
+          </div>
+
+          <div class="osc-wrap">
+            <canvas class="osc" id="oscCanvas"></canvas>
+          </div>
+        </div>
+
+      </div><!-- /gLeft -->
+
+      <!-- Gráfica -->
+      <div class="card gRight">
+        <div class="ch"><div class="cd"></div><div class="ct">Gráfica — Posición vs. Tiempo</div></div>
+
+        <div class="empty" id="chartEmpty">
+          <div class="empty-ico">〜</div>
+          <div class="empty-txt">Ingresa los parámetros<br>y presiona <strong>Calcular y Graficar</strong></div>
+        </div>
+
+        <div id="chartArea" style="display:none;">
+          <div class="chart-outer">
+            <canvas id="masChart"></canvas>
+          </div>
+          <div class="eqlist">
+            <div class="eqrow">
+              <span class="eqlbl">x =</span><span class="eqval c1" id="eq-x">—</span>
+            </div>
+            <div class="eqrow" id="eq-vr" style="display:none;">
+              <span class="eqlbl">v =</span><span class="eqval c2" id="eq-v">—</span>
+            </div>
+            <div class="eqrow" id="eq-ar" style="display:none;">
+              <span class="eqlbl">a =</span><span class="eqval c3" id="eq-a">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ TAB 2: CALCULADORA ══ -->
+  <div class="tpanel" id="panel-c">
+    <div class="cLayout">
+
+      <!-- Hallar A -->
+      <div class="card">
+        <div class="ch"><div class="cd"></div><div class="ct">Hallar Amplitud (A)</div></div>
+        <p class="sec">Dado x, ω, φ, t → A = x / cos(ωt + φ)</p>
+        <div class="field">
+          <div class="fl"><span class="fn">Posición x</span><span class="fu">m</span></div>
+          <input type="number" id="ca-x" step="any" inputmode="decimal" placeholder="ej. 0.5">
+        </div>
+        <div class="field">
+          <div class="fl"><span class="fn">Frec. angular ω</span><span class="fu">rad/s</span></div>
+          <input type="number" id="ca-w" step="any" inputmode="decimal" placeholder="ej. 2">
+        </div>
+        <div class="field">
+          <div class="fl"><span class="fn">Fase φ</span><span class="fu">rad</span></div>
+          <input type="number" id="ca-p" step="any" inputmode="decimal" value="0">
+        </div>
+        <div class="field">
+          <div class="fl"><span class="fn">Tiempo t</span><span class="fu">s</span></div>
+          <input type="number" id="ca-t" step="any" inputmode="decimal" placeholder="ej. 1">
+        </div>
+        <button class="btnP" onclick="solveA()">Calcular A</button>
+        <div class="sr" id="sr-A">
+          <div class="srl">Amplitud A</div>
+          <div class="srv" id="srV-A">—</div>
+          <div class="srf" id="srF-A"></div>
+        </div>
+      </div>
+
+      <!-- Hallar ω -->
+      <div class="card">
+        <div class="ch"><div class="cd y"></div><div class="ct">Hallar Frec. Angular (ω)</div></div>
+        <p class="sec">Desde Período T → ω = 2π / T</p>
+        <div class="field">
+          <div class="fl"><span class="fn">Período T</span><span class="fu">s</span></div>
+          <input type="number" id="cw-T" step="any" inputmode="decimal" placeholder="ej. 0.89">
+        </div>
+        <button class="btnP" onclick="solveWfromT()">Calcular ω desde T</button>
+        <div class="sr" id="sr-w1">
+          <div class="srl">Frecuencia angular ω</div>
+          <div class="srv y" id="srV-w1">—</div>
+          <div class="srf" id="srF-w1"></div>
+        </div>
+        <hr class="dv">
+        <p class="sec">Desde k, m → ω = √(k / m)</p>
+        <div class="field">
+          <div class="fl"><span class="fn">Constante k</span><span class="fu">N/m</span></div>
+          <input type="number" id="cw-k" step="any" inputmode="decimal" placeholder="ej. 100">
+        </div>
+        <div class="field">
+          <div class="fl"><span class="fn">Masa m</span><span class="fu">kg</span></div>
+          <input type="number" id="cw-m" step="any" inputmode="decimal" placeholder="ej. 2">
+        </div>
+        <button class="btnP" onclick="solveWfromKM()">Calcular ω desde k, m</button>
+        <div class="sr" id="sr-w2">
+          <div class="srl">Frecuencia angular ω</div>
+          <div class="srv y" id="srV-w2">—</div>
+          <div class="srf" id="srF-w2"></div>
+        </div>
+      </div>
+
+      <!-- Hallar T -->
+      <div class="card">
+        <div class="ch"><div class="cd r"></div><div class="ct">Hallar Período (T)</div></div>
+        <p class="sec">Desde ω → T = 2π / ω</p>
+        <div class="field">
+          <div class="fl"><span class="fn">Frec. angular ω</span><span class="fu">rad/s</span></div>
+          <input type="number" id="ct-w" step="any" inputmode="decimal" placeholder="ej. 2">
+        </div>
+        <button class="btnP" onclick="solveTfromW()">Calcular T desde ω</button>
+        <div class="sr" id="sr-T1">
+          <div class="srl">Período T</div>
+          <div class="srv r" id="srV-T1">—</div>
+          <div class="srf" id="srF-T1"></div>
+        </div>
+        <hr class="dv">
+        <p class="sec">Desde k, m → T = 2π√(m / k)</p>
+        <div class="field">
+          <div class="fl"><span class="fn">Constante k</span><span class="fu">N/m</span></div>
+          <input type="number" id="ct-k" step="any" inputmode="decimal" placeholder="ej. 100">
+        </div>
+        <div class="field">
+          <div class="fl"><span class="fn">Masa m</span><span class="fu">kg</span></div>
+          <input type="number" id="ct-m" step="any" inputmode="decimal" placeholder="ej. 2">
+        </div>
+        <button class="btnP" onclick="solveTfromKM()">Calcular T desde k, m</button>
+        <div class="sr" id="sr-T2">
+          <div class="srl">Período T</div>
+          <div class="srv r" id="srV-T2">—</div>
+          <div class="srf" id="srF-T2"></div>
+        </div>
+      </div>
+
+      <!-- Estado completo -->
+      <div class="card">
+        <div class="ch"><div class="cd"></div><div class="ct">Estado completo en t</div></div>
+        <p class="sec">Dado A, ω, φ, t → calcula x, v, a</p>
+        <div class="field">
+          <div class="fl"><span class="fn">Amplitud A</span><span class="fu">m</span></div>
+          <input type="number" id="cs-A" step="any" inputmode="decimal" placeholder="ej. 1">
+        </div>
+        <div class="field">
+          <div class="fl"><span class="fn">Frec. angular ω</span><span class="fu">rad/s</span></div>
+          <input type="number" id="cs-w" step="any" inputmode="decimal" placeholder="ej. 2">
+        </div>
+        <div class="field">
+          <div class="fl"><span class="fn">Fase φ</span><span class="fu">rad</span></div>
+          <input type="number" id="cs-p" step="any" inputmode="decimal" value="0">
+        </div>
+        <div class="field">
+          <div class="fl"><span class="fn">Tiempo t</span><span class="fu">s</span></div>
+          <input type="number" id="cs-t" step="any" inputmode="decimal" placeholder="ej. 1">
+        </div>
+        <button class="btnP" onclick="solveState()">Calcular estado</button>
+        <div class="sr" id="sr-st">
+          <div class="srl">Posición x(t)</div>
+          <div class="srv"   id="srV-sx">—</div>
+          <div class="srl" style="margin-top:10px;">Velocidad v(t)</div>
+          <div class="srv y" id="srV-sv">—</div>
+          <div class="srl" style="margin-top:10px;">Aceleración a(t)</div>
+          <div class="srv r" id="srV-sa">—</div>
+          <div class="srf"   id="srF-st"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════════════ */
+let masChart = null, animF = null, animT0 = null;
+let cA = 1, cW = 2, cP = 0;
+
+/* ════════════════════════════════════════════════════
+   DOM helpers
+════════════════════════════════════════════════════ */
+const g   = id => document.getElementById(id);
+const gv  = id => parseFloat(g(id).value);
+const bad = v  => !isFinite(v) || isNaN(v);
+
+/* ════════════════════════════════════════════════════
+   FORMAT HELPERS
+   - fmt()      : full precision display
+   - fmtAxis()  : compact for axis ticks
+   - fmtCard()  : medium for result cards
+════════════════════════════════════════════════════ */
+function fmt(n, d = 6) {
+  if (!isFinite(n)) return 'Indef.';
+  if (n === 0)      return '0';
+  const abs = Math.abs(n);
+  if (abs >= 1e9 || (abs < 1e-6 && abs > 0)) return n.toExponential(4);
+  return parseFloat(n.toFixed(d)).toString();
+}
+
+function fmtCard(n) {
+  if (!isFinite(n)) return 'Indef.';
+  if (n === 0)      return '0';
+  const abs = Math.abs(n);
+  if (abs >= 1e7 || (abs < 1e-4 && abs > 0)) return n.toExponential(3);
+  return parseFloat(n.toFixed(5)).toString();
+}
+
+function fmtAxis(v) {
+  const abs = Math.abs(v);
+  if (abs === 0) return '0';
+  if (abs >= 1e5 || (abs < 0.001 && abs > 0)) return v.toExponential(1);
+  if (abs >= 100) return parseFloat(v.toFixed(1)).toString();
+  if (abs >= 1)   return parseFloat(v.toFixed(2)).toString();
+  return parseFloat(v.toFixed(3)).toString();
+}
+
+/* ════════════════════════════════════════════════════
+   TABS
+════════════════════════════════════════════════════ */
+function switchTab(t) {
+  ['g','c'].forEach(n => {
+    g('tab-'+n).classList.toggle('active', n === t);
+    g('panel-'+n).classList.toggle('active', n === t);
+  });
+}
+
+/* ════════════════════════════════════════════════════
+   POP ANIMATION
+════════════════════════════════════════════════════ */
+function popEl(id) {
+  const el = g(id);
+  el.classList.remove('pop');
+  void el.offsetWidth;
+  el.classList.add('pop');
+}
+
+/* ════════════════════════════════════════════════════
+   SHOW SOLVER RESULT
+════════════════════════════════════════════════════ */
+function showSR(id, valStr, formula) {
+  g('sr-'+id).classList.add('show');
+  const ve = g('srV-'+id); if (ve) ve.textContent = valStr;
+  const fe = g('srF-'+id); if (fe) fe.textContent = formula || '';
+}
+
+/* ════════════════════════════════════════════════════
+   BUILD POINT ARRAYS
+   Returns array of {x, y} objects — Chart.js scatter
+   mode uses these directly for accurate X-axis placement.
+   No label array needed; Chart.js reads x from each point.
+
+   KEY FIXES for "recorte" (clipping):
+   1. Use scatter datasets with {x,y} — axis is truly linear,
+      no category-mode distortion.
+   2. tEnd = max(np*T, t*1.05 + T) — always covers requested t
+      plus one full extra period so the curve extends past t.
+   3. Point density scales with visible periods but is capped
+      at 2400 total — enough for smooth render on any screen.
+   4. X-axis min/max are explicitly set to [0, tEnd] so Chart.js
+      never clips or re-scales unexpectedly.
+   5. Y-axis min/max are set to [−yRange, +yRange] with 5%
+      padding — no auto-clip on the vertical axis either.
+════════════════════════════════════════════════════ */
+function buildPoints(A, w, p, tEnd, numPts) {
+  const pos = [], vel = [], acc = [];
+  const step = tEnd / numPts;
+  for (let i = 0; i <= numPts; i++) {
+    const ti  = step * i;
+    const ph  = w * ti + p;          // raw float, no rounding
+    const xv  = A * Math.cos(ph);
+    const vv  = -A * w * Math.sin(ph);
+    const av  = -A * w * w * Math.cos(ph);
+    pos.push({ x: ti, y: xv });
+    vel.push({ x: ti, y: vv });
+    acc.push({ x: ti, y: av });
+  }
+  return { pos, vel, acc };
+}
+
+/* ════════════════════════════════════════════════════
+   MAIN CALCULATOR
+════════════════════════════════════════════════════ */
+function calcular() {
+  const A  = gv('amp');
+  const w  = gv('omega');
+  const p  = gv('phi');
+  const t  = gv('tval');
+  const np = parseInt(g('nper').value);
+
+  if ([A, w, p, t].some(bad)) { alert('Completa todos los campos.'); return; }
+  if (w === 0)                 { alert('ω no puede ser 0.'); return; }
+  if (A <= 0)                  { alert('La amplitud A debe ser mayor que 0.'); return; }
+
+  cA = A; cW = w; cP = p;
+
+  /* ── Core physics ── */
+  const T    = (2 * Math.PI) / Math.abs(w);
+  const f    = 1 / T;
+  const vmax = A * Math.abs(w);
+  const amax = A * w * w;
+
+  /* Exact values at requested t */
+  const phase = w * t + p;
+  const xv    = A * Math.cos(phase);
+  const vv    = -A * w  * Math.sin(phase);
+  const av    = -A * w * w * Math.cos(phase);
+
+  /* ── Update cards ── */
+  g('tDisp').textContent = fmtCard(t);
+  g('rv-x').textContent  = fmtCard(xv)   + ' m';
+  g('rv-v').textContent  = fmtCard(vv)   + ' m/s';
+  g('rv-a').textContent  = fmtCard(av)   + ' m/s²';
+  g('dv-T').textContent  = fmtCard(T)    + ' s';
+  g('dv-f').textContent  = fmtCard(f)    + ' Hz';
+  g('dv-vm').textContent = fmtCard(vmax) + ' m/s';
+  g('dv-am').textContent = fmtCard(amax) + ' m/s²';
+  ['ri-x','ri-v','ri-a'].forEach(popEl);
+
+  /* ── Equation strings ── */
+  const ps = (p !== 0) ? ` + ${fmt(p,4)}` : '';
+  g('eq-x').textContent = `${fmt(A,4)} · cos(${fmt(Math.abs(w),4)}t${ps}) m`;
+  const sV = g('sV').checked, sA = g('sA').checked;
+  g('eq-vr').style.display = sV ? '' : 'none';
+  g('eq-ar').style.display = sA ? '' : 'none';
+  g('eq-v').textContent = `−${fmt(vmax,4)} · sin(${fmt(Math.abs(w),4)}t${ps}) m/s`;
+  g('eq-a').textContent = `−${fmt(amax,4)} · cos(${fmt(Math.abs(w),4)}t${ps}) m/s²`;
+
+  /* ────────────────────────────────────────────────
+     CHART DATA CONSTRUCTION
+     
+     tEnd: must cover at LEAST np full periods AND
+           always include the marker time t.
+     Extra buffer: add 1 full period past t so the
+     curve never looks "cut" right at the marker.
+  ──────────────────────────────────────────────── */
+  const tNatural = np * T;
+  // Always go at least to t + half a period past t,
+  // but also show the requested number of periods from start.
+  const tEnd = Math.max(tNatural, t + T);
+
+  /*
+    Point count: we want ~150 pts per period for a smooth sine.
+    But cap at 2400 total so mobile stays fast.
+    Minimum: 400 so even with 1 period we have a smooth curve.
+  */
+  const periods = tEnd / T;
+  const ptsRaw  = Math.round(periods * 150);
+  const numPts  = Math.min(Math.max(ptsRaw, 400), 2400);
+
+  /* Build {x,y} point arrays */
+  const { pos, vel, acc } = buildPoints(A, w, p, tEnd, numPts);
+
+  /* 
+    Marker: find the point index nearest to t.
+    Since points are uniformly spaced, this is just:
+  */
+  const step       = tEnd / numPts;
+  const markerIdx  = Math.round(t / step);           // nearest index
+  const clampedIdx = Math.min(markerIdx, numPts);    // never out of bounds
+  const markerXY   = pos[clampedIdx];                // actual {x,y} of marker
+
+  /* Y-axis range: largest amplitude among shown curves + 5% padding */
+  const sP = g('sP').checked;
+  let yMax = 0;
+  if (sP) yMax = Math.max(yMax, A);
+  if (sV) yMax = Math.max(yMax, vmax);
+  if (sA) yMax = Math.max(yMax, amax);
+  if (yMax === 0) yMax = A; // fallback
+  const yPad = yMax * 0.08;
+
+  /* ── Build datasets ── */
+  const datasets = [];
+
+  if (sP) datasets.push({
+    label: 'Posición x(t) [m]',
+    data: pos,
+    borderColor: '#2dd4bf',
+    backgroundColor: 'rgba(45,212,191,0.07)',
+    borderWidth: 2,
+    pointRadius: 0,
+    fill: true,
+    tension: 0.4,
+    showLine: true
+  });
+
+  if (sV) datasets.push({
+    label: 'Velocidad v(t) [m/s]',
+    data: vel,
+    borderColor: '#fbbf24',
+    backgroundColor: 'transparent',
+    borderWidth: 1.8,
+    pointRadius: 0,
+    fill: false,
+    tension: 0.4,
+    borderDash: [5, 4],
+    showLine: true
+  });
+
+  if (sA) datasets.push({
+    label: 'Aceleración a(t) [m/s²]',
+    data: acc,
+    borderColor: '#f87171',
+    backgroundColor: 'transparent',
+    borderWidth: 1.8,
+    pointRadius: 0,
+    fill: false,
+    tension: 0.4,
+    borderDash: [3, 3],
+    showLine: true
+  });
+
+  /* Marker dot — single-point scatter dataset */
+  if (sP && markerXY) {
+    datasets.push({
+      label: `▸ t₀ = ${fmtCard(t)} s`,
+      data: [markerXY],
+      borderColor: '#ffffff',
+      backgroundColor: '#ffffff',
+      pointRadius: 7,
+      pointHoverRadius: 9,
+      pointStyle: 'circle',
+      showLine: false,
+      borderWidth: 2
+    });
+  }
+
+  /* ── Render chart ── */
+  g('chartEmpty').style.display = 'none';
+  g('chartArea').style.display  = 'block';
+
+  const canvas = g('masChart');
+  const ctx    = canvas.getContext('2d');
+
+  if (masChart) { masChart.destroy(); masChart = null; }
+
+  masChart = new Chart(ctx, {
+    /*
+      Use 'scatter' type — this is the correct Chart.js mode for
+      numeric X axis. 'line' treats labels as categories which
+      causes the clipping/distortion problem.
+    */
+    type: 'scatter',
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 300 },
+      interaction: { mode: 'nearest', intersect: false, axis: 'x' },
+
+      plugins: {
+        legend: {
+          display: true,
+          labels: {
+            color: '#64748b',
+            font: { family: 'Space Mono', size: 9 },
+            boxWidth: 14, padding: 8,
+            /* Don't show the marker in legend */
+            filter: item => !item.text.startsWith('▸')
+          }
+        },
+        tooltip: {
+          backgroundColor: '#0d1320',
+          borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1,
+          titleColor: '#94a3b8', bodyColor: '#e2e8f0',
+          titleFont: { family: 'Space Mono', size: 9 },
+          bodyFont:  { family: 'Space Mono', size: 10 },
+          padding: 10,
+          callbacks: {
+            title: items => {
+              const xVal = items[0]?.raw?.x;
+              return xVal !== undefined ? `t = ${fmt(xVal, 5)} s` : '';
+            },
+            label: item => {
+              const yVal = item.raw?.y;
+              if (yVal === undefined || yVal === null) return null;
+              const name = item.dataset.label.split('[')[0].trim();
+              return `${name}: ${fmt(yVal, 6)}`;
+            }
+          }
+        }
+      },
+
+      scales: {
+        x: {
+          type: 'linear',
+          /*
+            Explicitly set min=0, max=tEnd.
+            This is the core fix: Chart.js will NEVER clip the curve
+            when min/max are explicit. Without this, it auto-scales
+            and can cut off data at both ends.
+          */
+          min: 0,
+          max: tEnd,
+          ticks: {
+            color: '#64748b',
+            font: { family: 'Space Mono', size: 8 },
+            maxTicksLimit: 8,
+            callback: fmtAxis
+          },
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          title: {
+            display: true, text: 'Tiempo t (s)',
+            color: '#64748b', font: { family: 'Outfit', size: 10, weight: '600' }
+          }
+        },
+        y: {
+          type: 'linear',
+          /*
+            Explicitly set y range.
+            Prevents Chart.js from auto-clipping the sine wave
+            when amplitude is very large or very small.
+          */
+          min: -(yMax + yPad),
+          max:  (yMax + yPad),
+          ticks: {
+            color: '#64748b',
+            font: { family: 'Space Mono', size: 8 },
+            maxTicksLimit: 8,
+            callback: fmtAxis
+          },
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          title: {
+            display: true, text: 'Magnitud',
+            color: '#64748b', font: { family: 'Outfit', size: 10, weight: '600' }
+          }
+        }
+      }
+    }
+  });
+
+  startOsc();
+}
+
+/* ════════════════════════════════════════════════════
+   OSCILLATOR ANIMATION
+════════════════════════════════════════════════════ */
+function startOsc() {
+  if (animF) { cancelAnimationFrame(animF); animF = null; }
+  animT0 = null;
+  const canvas = g('oscCanvas');
+  const ctx    = canvas.getContext('2d');
+  const A = cA, w = cW, p = cP;
+
+  function draw(ts) {
+    if (!animT0) animT0 = ts;
+    const elapsed = (ts - animT0) / 1000;
+
+    const W = canvas.clientWidth || 300;
+    const H = 90;
+    if (canvas.width !== W)  canvas.width  = W;
+    if (canvas.height !== H) canvas.height = H;
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#111b2e';
+    ctx.fillRect(0, 0, W, H);
+
+    /* Equilibrium dashed line */
+    ctx.setLineDash([5, 5]);
+    ctx.strokeStyle = 'rgba(100,116,139,0.25)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke();
+    ctx.setLineDash([]);
+
+    /* Trail */
+    const T_osc = (2 * Math.PI) / Math.abs(w);
+    const tSpan = 2 * T_osc;
+    const halfH = H/2 - 10;
+
+    for (let i = 0; i < 140; i++) {
+      const tT = elapsed - (i / 140) * tSpan;
+      if (tT < 0) continue;
+      const xp = W * 0.82 - (i / 140) * W * 0.70;
+      const yp = H/2 - Math.cos(w * tT + p) * halfH;
+      const al = Math.pow(1 - i / 140, 1.7);
+      ctx.beginPath();
+      ctx.arc(xp, yp, 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(45,212,191,${al * 0.45})`;
+      ctx.fill();
+    }
+
+    /* Spring */
+    const bX = W * 0.82;
+    const bY = H/2 - Math.cos(w * elapsed + p) * halfH;
+    const sTop = 6, coils = 6;
+    ctx.strokeStyle = 'rgba(100,116,139,0.45)';
+    ctx.lineWidth = 1.3; ctx.beginPath();
+    for (let i = 0; i <= coils * 14; i++) {
+      const py = sTop + (bY - sTop) * (i / (coils * 14));
+      const px = bX + Math.sin(i / 14 * Math.PI * 2) * 7;
+      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+
+    /* Ball glow */
+    const grd = ctx.createRadialGradient(bX, bY, 0, bX, bY, 12);
+    grd.addColorStop(0, 'rgba(45,212,191,0.6)');
+    grd.addColorStop(1, 'rgba(45,212,191,0)');
+    ctx.beginPath(); ctx.arc(bX, bY, 12, 0, Math.PI * 2);
+    ctx.fillStyle = grd; ctx.fill();
+    ctx.beginPath(); ctx.arc(bX, bY, 6, 0, Math.PI * 2);
+    ctx.fillStyle = '#2dd4bf'; ctx.fill();
+
+    /* Live value label */
+    const xLive = A * Math.cos(w * elapsed + p);
+    ctx.font = '9px Space Mono, monospace';
+    ctx.fillStyle = '#64748b';
+    ctx.fillText(`x = ${fmtCard(xLive)} m`, 7, 14);
+
+    animF = requestAnimationFrame(draw);
+  }
+
+  animF = requestAnimationFrame(draw);
+}
+
+/* ════════════════════════════════════════════════════
+   RESET
+════════════════════════════════════════════════════ */
+function resetear() {
+  ['amp','omega','phi','tval'].forEach((id, i) => g(id).value = [1,2,0,1][i]);
+  g('nper').value = 3;
+  g('sP').checked = true; g('sV').checked = false; g('sA').checked = false;
+
+  if (masChart) { masChart.destroy(); masChart = null; }
+  if (animF)    { cancelAnimationFrame(animF); animF = null; }
+
+  g('chartEmpty').style.display = '';
+  g('chartArea').style.display  = 'none';
+
+  ['rv-x','rv-v','rv-a','dv-T','dv-f','dv-vm','dv-am']
+    .forEach(id => g(id).textContent = '—');
+  g('tDisp').textContent = '—';
+
+  const c = g('oscCanvas');
+  c.getContext('2d').clearRect(0, 0, c.width, c.height);
+}
+
+/* ════════════════════════════════════════════════════
+   SOLVERS
+════════════════════════════════════════════════════ */
+function solveA() {
+  const x = gv('ca-x'), w = gv('ca-w'), p = gv('ca-p'), t = gv('ca-t');
+  if ([x,w,p,t].some(bad)) { alert('Completa todos los campos.'); return; }
+  const den = Math.cos(w * t + p);
+  if (Math.abs(den) < 1e-12) { alert('cos(ωt + φ) ≈ 0. Prueba otro valor de t.'); return; }
+  const Av = x / den;
+  showSR('A', fmt(Av) + ' m',
+    `A = x / cos(ωt + φ)\nA = ${fmt(x)} / cos(${fmt(w)}·${fmt(t)} + ${fmt(p)})\nA = ${fmt(Av)} m`);
+}
+
+function solveWfromT() {
+  const T = gv('cw-T');
+  if (bad(T) || T <= 0) { alert('T debe ser positivo.'); return; }
+  const wv = (2 * Math.PI) / T;
+  showSR('w1', fmt(wv) + ' rad/s',
+    `ω = 2π / T\nω = 2π / ${fmt(T)}\nω = ${fmt(wv)} rad/s`);
+}
+
+function solveWfromKM() {
+  const k = gv('cw-k'), m = gv('cw-m');
+  if (bad(k)||bad(m)||k<=0||m<=0) { alert('k y m deben ser positivos.'); return; }
+  const wv = Math.sqrt(k / m);
+  showSR('w2', fmt(wv) + ' rad/s',
+    `ω = √(k/m)\nω = √(${fmt(k)} / ${fmt(m)})\nω = ${fmt(wv)} rad/s`);
+}
+
+function solveTfromW() {
+  const w = gv('ct-w');
+  if (bad(w) || w <= 0) { alert('ω debe ser positivo.'); return; }
+  const Tv = (2 * Math.PI) / w;
+  showSR('T1', fmt(Tv) + ' s',
+    `T = 2π / ω\nT = 2π / ${fmt(w)}\nT = ${fmt(Tv)} s`);
+}
+
+function solveTfromKM() {
+  const k = gv('ct-k'), m = gv('ct-m');
+  if (bad(k)||bad(m)||k<=0||m<=0) { alert('k y m deben ser positivos.'); return; }
+  const Tv = 2 * Math.PI * Math.sqrt(m / k);
+  showSR('T2', fmt(Tv) + ' s',
+    `T = 2π√(m/k)\nT = 2π·√(${fmt(m)} / ${fmt(k)})\nT = ${fmt(Tv)} s`);
+}
+
+function solveState() {
+  const A = gv('cs-A'), w = gv('cs-w'), p = gv('cs-p'), t = gv('cs-t');
+  if ([A,w,p,t].some(bad)) { alert('Completa todos los campos.'); return; }
+  const phase = w * t + p;
+  const x = A * Math.cos(phase);
+  const v = -A * w * Math.sin(phase);
+  const a = -A * w * w * Math.cos(phase);
+  g('sr-st').classList.add('show');
+  g('srV-sx').textContent = fmt(x) + ' m';
+  g('srV-sv').textContent = fmt(v) + ' m/s';
+  g('srV-sa').textContent = fmt(a) + ' m/s²';
+  g('srF-st').textContent =
+    `x = A·cos(ωt+φ) = ${fmt(x)} m\nv = −Aω·sin(ωt+φ) = ${fmt(v)} m/s\na = −Aω²·cos(ωt+φ) = ${fmt(a)} m/s²`;
+}
+
+/* ── Auto-run with defaults on load ── */
+window.addEventListener('load', calcular);
+</script>
+</body>
+</html>
